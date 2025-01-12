@@ -44,7 +44,7 @@ const AddMemoRelationPopover = (props: Props) => {
 
       setIsFetching(true);
       try {
-        const filters = [`creator == "${user.name}"`, `row_status == "NORMAL"`];
+        const filters = [`creator == "${user.name}"`, `state == "NORMAL"`];
         if (searchText) {
           filters.push(`content_search == [${JSON.stringify(searchText)}]`);
         }
@@ -92,7 +92,7 @@ const AddMemoRelationPopover = (props: Props) => {
     // If embedded mode is enabled, embed the memo instead of creating a relation.
     if (embedded) {
       if (!editorRef.current) {
-        toast.error("Failed to embed memo");
+        toast.error(t("message.failed-to-embed-memo"));
         return;
       }
 
