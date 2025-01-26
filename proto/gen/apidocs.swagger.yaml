@@ -367,7 +367,7 @@ paths:
           type: string
       tags:
         - MemoService
-  /api/v1/reactions/{reactionId}:
+  /api/v1/reactions/{id}:
     delete:
       summary: DeleteMemoReaction deletes a reaction for a memo.
       operationId: MemoService_DeleteMemoReaction
@@ -382,7 +382,10 @@ paths:
           schema:
             $ref: '#/definitions/googlerpcStatus'
       parameters:
-        - name: reactionId
+        - name: id
+          description: |-
+            The id of the reaction.
+            Refer to the `Reaction.id`.
           in: path
           required: true
           type: integer
@@ -1861,6 +1864,8 @@ definitions:
         type: string
       bucket:
         type: string
+      usePathStyle:
+        type: boolean
     title: 'Reference: https://developers.cloudflare.com/r2/examples/aws/aws-sdk-go/'
   apiHttpBody:
     type: object
@@ -1927,14 +1932,14 @@ definitions:
   apiv1ActivityMemoCommentPayload:
     type: object
     properties:
-      memoId:
-        type: integer
-        format: int32
-        description: The memo id of comment.
-      relatedMemoId:
-        type: integer
-        format: int32
-        description: The memo id of related memo.
+      memo:
+        type: string
+        description: |-
+          The memo name of comment.
+          Refer to `Memo.name`.
+      relatedMemo:
+        type: string
+        description: The name of related memo.
     description: ActivityMemoCommentPayload represents the payload of a memo comment activity.
   apiv1ActivityPayload:
     type: object
@@ -2911,6 +2916,9 @@ definitions:
           Format: users/{user}
       contentId:
         type: string
+        description: |-
+          The content identifier.
+          For memo, it should be the `Memo.name`.
       reactionType:
         type: string
   v1ReferencedContentNode:
