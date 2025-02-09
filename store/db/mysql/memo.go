@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/usememos/memos/plugin/filter"
 	storepb "github.com/usememos/memos/proto/gen/store"
 	"github.com/usememos/memos/store"
 )
@@ -108,6 +109,24 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 			where = append(where, "JSON_EXTRACT(`memo`.`payload`, '$.property.hasIncompleteTasks') IS TRUE")
 		}
 	}
+	if v := find.Filter; v != nil {
+		// Parse filter string and return the parsed expression.
+		// The filter string should be a CEL expression.
+		parsedExpr, err := filter.Parse(*v, filter.MemoFilterCELAttributes...)
+		if err != nil {
+			return nil, err
+		}
+		convertCtx := filter.NewConvertContext()
+		// ConvertExprToSQL converts the parsed expression to a SQL condition string.
+		if err := d.ConvertExprToSQL(convertCtx, parsedExpr.GetExpr()); err != nil {
+			return nil, err
+		}
+		condition := convertCtx.Buffer.String()
+		if condition != "" {
+			where = append(where, fmt.Sprintf("(%s)", condition))
+			args = append(args, convertCtx.Args...)
+		}
+	}
 	if find.ExcludeComments {
 		having = append(having, "`parent_id` IS NULL")
 	}
@@ -126,10 +145,6 @@ func (d *DB) ListMemos(ctx context.Context, find *store.FindMemo) ([]*store.Memo
 		orders = append(orders, "`created_ts` "+order)
 	}
 	orders = append(orders, "`id` "+order)
-	if find.Random {
-		orders = append(orders, "RAND()")
-	}
-
 	fields := []string{
 		"`memo`.`id` AS `id`",
 		"`memo`.`uid` AS `uid`",
