@@ -1,5 +1,6 @@
 import { Divider } from "@mui/joy";
 import { Button } from "@usememos/mui";
+import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Link } from "react-router-dom";
@@ -9,12 +10,12 @@ import { identityProviderServiceClient } from "@/grpcweb";
 import { absolutifyLink } from "@/helpers/utils";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { Routes } from "@/router";
-import { extractIdentityProviderIdFromName } from "@/store/v1";
+import { extractIdentityProviderIdFromName } from "@/store/common";
 import { workspaceStore } from "@/store/v2";
 import { IdentityProvider, IdentityProvider_Type } from "@/types/proto/api/v1/idp_service";
 import { useTranslate } from "@/utils/i18n";
 
-const SignIn = () => {
+const SignIn = observer(() => {
   const t = useTranslate();
   const currentUser = useCurrentUser();
   const [identityProviderList, setIdentityProviderList] = useState<IdentityProvider[]>([]);
@@ -98,6 +99,6 @@ const SignIn = () => {
       <AuthFooter />
     </div>
   );
-};
+});
 
 export default SignIn;
