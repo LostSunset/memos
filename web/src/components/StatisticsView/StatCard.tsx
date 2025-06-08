@@ -6,7 +6,7 @@ export const StatCard = ({ icon, label, count, onClick, tooltip, className }: St
   const content = (
     <div
       className={cn(
-        "w-auto border dark:border-zinc-800 pl-1.5 pr-2 py-0.5 rounded-md flex justify-between items-center",
+        "w-auto border border-zinc-200 dark:border-zinc-800 pl-1.5 pr-2 py-0.5 rounded-md flex justify-between items-center",
         "cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors",
         className,
       )}
@@ -14,9 +14,9 @@ export const StatCard = ({ icon, label, count, onClick, tooltip, className }: St
     >
       <div className="w-auto flex justify-start items-center mr-1">
         {icon}
-        <span className="block text-sm">{label}</span>
+        <span className="block text-sm opacity-80">{label}</span>
       </div>
-      <span className="text-sm truncate">{count}</span>
+      <span className="text-sm truncate opacity-80">{count}</span>
     </div>
   );
 

@@ -1,5 +1,5 @@
-import { Divider, List, ListItem, Radio, RadioGroup, Tooltip, Switch } from "@mui/joy";
-import { Button, Input } from "@usememos/mui";
+import { Divider, List, ListItem, Radio, RadioGroup, Tooltip } from "@mui/joy";
+import { Button, Input, Switch } from "@usememos/mui";
 import { isEqual } from "lodash-es";
 import { HelpCircleIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
@@ -198,7 +198,7 @@ const StorageSection = observer(() => {
           {t("common.save")}
         </Button>
       </div>
-      <Divider className="!my-2" />
+      <Divider className="my-2!" />
       <div className="w-full mt-4">
         <p className="text-sm">{t("common.learn-more")}:</p>
         <List component="ul" marker="disc" size="sm">

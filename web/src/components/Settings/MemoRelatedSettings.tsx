@@ -1,5 +1,5 @@
-import { Switch, Chip, ChipDelete } from "@mui/joy";
-import { Button, Input } from "@usememos/mui";
+import { Chip, ChipDelete } from "@mui/joy";
+import { Button, Input, Switch } from "@usememos/mui";
 import { isEqual, uniq } from "lodash-es";
 import { CheckIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
@@ -123,7 +123,7 @@ const MemoRelatedSettings = observer(() => {
           {memoRelatedSetting.reactions.map((reactionType) => {
             return (
               <Chip
-                className="!h-8"
+                className="h-8!"
                 key={reactionType}
                 variant="outlined"
                 size="lg"
@@ -138,7 +138,7 @@ const MemoRelatedSettings = observer(() => {
             );
           })}
           <Input
-            className="w-32 !rounded-full !pl-1"
+            className="w-32 rounded-full! pl-1!"
             placeholder={t("common.input")}
             value={editingReaction}
             onChange={(event) => setEditingReaction(event.target.value.trim())}
@@ -163,7 +163,7 @@ const MemoRelatedSettings = observer(() => {
           {memoRelatedSetting.nsfwTags.map((nsfwTag) => {
             return (
               <Chip
-                className="!h-8"
+                className="h-8!"
                 key={nsfwTag}
                 variant="outlined"
                 size="lg"
@@ -178,7 +178,7 @@ const MemoRelatedSettings = observer(() => {
             );
           })}
           <Input
-            className="w-32 !rounded-full !pl-1"
+            className="w-32 rounded-full! pl-1!"
             placeholder={t("common.input")}
             value={editingNsfwTag}
             onChange={(event) => setEditingNsfwTag(event.target.value.trim())}
