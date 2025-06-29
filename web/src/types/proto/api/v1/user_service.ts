@@ -20,8 +20,6 @@ export interface User {
    * Format: users/{user}
    */
   name: string;
-  /** Output only. The system generated unique identifier. */
-  uid: string;
   /** The role of the user. */
   role: User_Role;
   /** Required. The unique username for login. */
@@ -43,11 +41,7 @@ export interface User {
     | Date
     | undefined;
   /** Output only. The last update timestamp. */
-  updateTime?:
-    | Date
-    | undefined;
-  /** Output only. The etag for this resource. */
-  etag: string;
+  updateTime?: Date | undefined;
 }
 
 /** User role enumeration. */
@@ -359,6 +353,63 @@ export interface DeleteUserAccessTokenRequest {
   name: string;
 }
 
+export interface UserSession {
+  /**
+   * The resource name of the session.
+   * Format: users/{user}/sessions/{session}
+   */
+  name: string;
+  /** The session ID. */
+  sessionId: string;
+  /** The timestamp when the session was created. */
+  createTime?:
+    | Date
+    | undefined;
+  /**
+   * The timestamp when the session was last accessed.
+   * Used for sliding expiration calculation (last_accessed_time + 2 weeks).
+   */
+  lastAccessedTime?:
+    | Date
+    | undefined;
+  /** Client information associated with this session. */
+  clientInfo?: UserSession_ClientInfo | undefined;
+}
+
+export interface UserSession_ClientInfo {
+  /** User agent string of the client. */
+  userAgent: string;
+  /** IP address of the client. */
+  ipAddress: string;
+  /** Optional. Device type (e.g., "mobile", "desktop", "tablet"). */
+  deviceType: string;
+  /** Optional. Operating system (e.g., "iOS 17.0", "Windows 11"). */
+  os: string;
+  /** Optional. Browser name and version (e.g., "Chrome 119.0"). */
+  browser: string;
+}
+
+export interface ListUserSessionsRequest {
+  /**
+   * Required. The resource name of the parent.
+   * Format: users/{user}
+   */
+  parent: string;
+}
+
+export interface ListUserSessionsResponse {
+  /** The list of user sessions. */
+  sessions: UserSession[];
+}
+
+export interface RevokeUserSessionRequest {
+  /**
+   * Required. The resource name of the session to revoke.
+   * Format: users/{user}/sessions/{session}
+   */
+  name: string;
+}
+
 export interface ListAllUserStatsRequest {
   /** Optional. The maximum number of user stats to return. */
   pageSize: number;
@@ -378,7 +429,6 @@ export interface ListAllUserStatsResponse {
 function createBaseUser(): User {
   return {
     name: "",
-    uid: "",
     role: User_Role.ROLE_UNSPECIFIED,
     username: "",
     email: "",
@@ -389,7 +439,6 @@ function createBaseUser(): User {
     state: State.STATE_UNSPECIFIED,
     createTime: undefined,
     updateTime: undefined,
-    etag: "",
   };
 }
 
@@ -398,41 +447,35 @@ export const User: MessageFns<User> = {
     if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
-    if (message.uid !== "") {
-      writer.uint32(18).string(message.uid);
-    }
     if (message.role !== User_Role.ROLE_UNSPECIFIED) {
-      writer.uint32(24).int32(user_RoleToNumber(message.role));
+      writer.uint32(16).int32(user_RoleToNumber(message.role));
     }
     if (message.username !== "") {
-      writer.uint32(34).string(message.username);
+      writer.uint32(26).string(message.username);
     }
     if (message.email !== "") {
-      writer.uint32(42).string(message.email);
+      writer.uint32(34).string(message.email);
     }
     if (message.displayName !== "") {
-      writer.uint32(50).string(message.displayName);
+      writer.uint32(42).string(message.displayName);
     }
     if (message.avatarUrl !== "") {
-      writer.uint32(58).string(message.avatarUrl);
+      writer.uint32(50).string(message.avatarUrl);
     }
     if (message.description !== "") {
-      writer.uint32(66).string(message.description);
+      writer.uint32(58).string(message.description);
     }
     if (message.password !== "") {
-      writer.uint32(74).string(message.password);
+      writer.uint32(66).string(message.password);
     }
     if (message.state !== State.STATE_UNSPECIFIED) {
-      writer.uint32(80).int32(stateToNumber(message.state));
+      writer.uint32(72).int32(stateToNumber(message.state));
     }
     if (message.createTime !== undefined) {
-      Timestamp.encode(toTimestamp(message.createTime), writer.uint32(90).fork()).join();
+      Timestamp.encode(toTimestamp(message.createTime), writer.uint32(82).fork()).join();
     }
     if (message.updateTime !== undefined) {
-      Timestamp.encode(toTimestamp(message.updateTime), writer.uint32(98).fork()).join();
-    }
-    if (message.etag !== "") {
-      writer.uint32(106).string(message.etag);
+      Timestamp.encode(toTimestamp(message.updateTime), writer.uint32(90).fork()).join();
     }
     return writer;
   },
@@ -453,19 +496,19 @@ export const User: MessageFns<User> = {
           continue;
         }
         case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.uid = reader.string();
-          continue;
-        }
-        case 3: {
-          if (tag !== 24) {
+          if (tag !== 16) {
             break;
           }
 
           message.role = user_RoleFromJSON(reader.int32());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.username = reader.string();
           continue;
         }
         case 4: {
@@ -473,7 +516,7 @@ export const User: MessageFns<User> = {
             break;
           }
 
-          message.username = reader.string();
+          message.email = reader.string();
           continue;
         }
         case 5: {
@@ -481,7 +524,7 @@ export const User: MessageFns<User> = {
             break;
           }
 
-          message.email = reader.string();
+          message.displayName = reader.string();
           continue;
         }
         case 6: {
@@ -489,7 +532,7 @@ export const User: MessageFns<User> = {
             break;
           }
 
-          message.displayName = reader.string();
+          message.avatarUrl = reader.string();
           continue;
         }
         case 7: {
@@ -497,7 +540,7 @@ export const User: MessageFns<User> = {
             break;
           }
 
-          message.avatarUrl = reader.string();
+          message.description = reader.string();
           continue;
         }
         case 8: {
@@ -505,23 +548,23 @@ export const User: MessageFns<User> = {
             break;
           }
 
-          message.description = reader.string();
-          continue;
-        }
-        case 9: {
-          if (tag !== 74) {
-            break;
-          }
-
           message.password = reader.string();
           continue;
         }
-        case 10: {
-          if (tag !== 80) {
+        case 9: {
+          if (tag !== 72) {
             break;
           }
 
           message.state = stateFromJSON(reader.int32());
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createTime = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
           continue;
         }
         case 11: {
@@ -529,23 +572,7 @@ export const User: MessageFns<User> = {
             break;
           }
 
-          message.createTime = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 12: {
-          if (tag !== 98) {
-            break;
-          }
-
           message.updateTime = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
-          continue;
-        }
-        case 13: {
-          if (tag !== 106) {
-            break;
-          }
-
-          message.etag = reader.string();
           continue;
         }
       }
@@ -563,7 +590,6 @@ export const User: MessageFns<User> = {
   fromPartial(object: DeepPartial<User>): User {
     const message = createBaseUser();
     message.name = object.name ?? "";
-    message.uid = object.uid ?? "";
     message.role = object.role ?? User_Role.ROLE_UNSPECIFIED;
     message.username = object.username ?? "";
     message.email = object.email ?? "";
@@ -574,7 +600,6 @@ export const User: MessageFns<User> = {
     message.state = object.state ?? State.STATE_UNSPECIFIED;
     message.createTime = object.createTime ?? undefined;
     message.updateTime = object.updateTime ?? undefined;
-    message.etag = object.etag ?? "";
     return message;
   },
 };
@@ -2046,6 +2071,334 @@ export const DeleteUserAccessTokenRequest: MessageFns<DeleteUserAccessTokenReque
   },
 };
 
+function createBaseUserSession(): UserSession {
+  return { name: "", sessionId: "", createTime: undefined, lastAccessedTime: undefined, clientInfo: undefined };
+}
+
+export const UserSession: MessageFns<UserSession> = {
+  encode(message: UserSession, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
+    }
+    if (message.sessionId !== "") {
+      writer.uint32(18).string(message.sessionId);
+    }
+    if (message.createTime !== undefined) {
+      Timestamp.encode(toTimestamp(message.createTime), writer.uint32(26).fork()).join();
+    }
+    if (message.lastAccessedTime !== undefined) {
+      Timestamp.encode(toTimestamp(message.lastAccessedTime), writer.uint32(34).fork()).join();
+    }
+    if (message.clientInfo !== undefined) {
+      UserSession_ClientInfo.encode(message.clientInfo, writer.uint32(42).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UserSession {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUserSession();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.createTime = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.lastAccessedTime = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.clientInfo = UserSession_ClientInfo.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<UserSession>): UserSession {
+    return UserSession.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<UserSession>): UserSession {
+    const message = createBaseUserSession();
+    message.name = object.name ?? "";
+    message.sessionId = object.sessionId ?? "";
+    message.createTime = object.createTime ?? undefined;
+    message.lastAccessedTime = object.lastAccessedTime ?? undefined;
+    message.clientInfo = (object.clientInfo !== undefined && object.clientInfo !== null)
+      ? UserSession_ClientInfo.fromPartial(object.clientInfo)
+      : undefined;
+    return message;
+  },
+};
+
+function createBaseUserSession_ClientInfo(): UserSession_ClientInfo {
+  return { userAgent: "", ipAddress: "", deviceType: "", os: "", browser: "" };
+}
+
+export const UserSession_ClientInfo: MessageFns<UserSession_ClientInfo> = {
+  encode(message: UserSession_ClientInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userAgent !== "") {
+      writer.uint32(10).string(message.userAgent);
+    }
+    if (message.ipAddress !== "") {
+      writer.uint32(18).string(message.ipAddress);
+    }
+    if (message.deviceType !== "") {
+      writer.uint32(26).string(message.deviceType);
+    }
+    if (message.os !== "") {
+      writer.uint32(34).string(message.os);
+    }
+    if (message.browser !== "") {
+      writer.uint32(42).string(message.browser);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UserSession_ClientInfo {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUserSession_ClientInfo();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userAgent = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.ipAddress = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deviceType = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.os = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.browser = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<UserSession_ClientInfo>): UserSession_ClientInfo {
+    return UserSession_ClientInfo.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<UserSession_ClientInfo>): UserSession_ClientInfo {
+    const message = createBaseUserSession_ClientInfo();
+    message.userAgent = object.userAgent ?? "";
+    message.ipAddress = object.ipAddress ?? "";
+    message.deviceType = object.deviceType ?? "";
+    message.os = object.os ?? "";
+    message.browser = object.browser ?? "";
+    return message;
+  },
+};
+
+function createBaseListUserSessionsRequest(): ListUserSessionsRequest {
+  return { parent: "" };
+}
+
+export const ListUserSessionsRequest: MessageFns<ListUserSessionsRequest> = {
+  encode(message: ListUserSessionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.parent !== "") {
+      writer.uint32(10).string(message.parent);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListUserSessionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListUserSessionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.parent = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<ListUserSessionsRequest>): ListUserSessionsRequest {
+    return ListUserSessionsRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ListUserSessionsRequest>): ListUserSessionsRequest {
+    const message = createBaseListUserSessionsRequest();
+    message.parent = object.parent ?? "";
+    return message;
+  },
+};
+
+function createBaseListUserSessionsResponse(): ListUserSessionsResponse {
+  return { sessions: [] };
+}
+
+export const ListUserSessionsResponse: MessageFns<ListUserSessionsResponse> = {
+  encode(message: ListUserSessionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.sessions) {
+      UserSession.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListUserSessionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListUserSessionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessions.push(UserSession.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<ListUserSessionsResponse>): ListUserSessionsResponse {
+    return ListUserSessionsResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ListUserSessionsResponse>): ListUserSessionsResponse {
+    const message = createBaseListUserSessionsResponse();
+    message.sessions = object.sessions?.map((e) => UserSession.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseRevokeUserSessionRequest(): RevokeUserSessionRequest {
+  return { name: "" };
+}
+
+export const RevokeUserSessionRequest: MessageFns<RevokeUserSessionRequest> = {
+  encode(message: RevokeUserSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RevokeUserSessionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRevokeUserSessionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<RevokeUserSessionRequest>): RevokeUserSessionRequest {
+    return RevokeUserSessionRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RevokeUserSessionRequest>): RevokeUserSessionRequest {
+    const message = createBaseRevokeUserSessionRequest();
+    message.name = object.name ?? "";
+    return message;
+  },
+};
+
 function createBaseListAllUserStatsRequest(): ListAllUserStatsRequest {
   return { pageSize: 0, pageToken: "" };
 }
@@ -2893,6 +3246,112 @@ export const UserServiceDefinition = {
               111,
               107,
               101,
+              110,
+              115,
+              47,
+              42,
+              125,
+            ]),
+          ],
+        },
+      },
+    },
+    /** ListUserSessions returns a list of active sessions for a user. */
+    listUserSessions: {
+      name: "ListUserSessions",
+      requestType: ListUserSessionsRequest,
+      requestStream: false,
+      responseType: ListUserSessionsResponse,
+      responseStream: false,
+      options: {
+        _unknownFields: {
+          8410: [new Uint8Array([6, 112, 97, 114, 101, 110, 116])],
+          578365826: [
+            new Uint8Array([
+              35,
+              18,
+              33,
+              47,
+              97,
+              112,
+              105,
+              47,
+              118,
+              49,
+              47,
+              123,
+              112,
+              97,
+              114,
+              101,
+              110,
+              116,
+              61,
+              117,
+              115,
+              101,
+              114,
+              115,
+              47,
+              42,
+              125,
+              47,
+              115,
+              101,
+              115,
+              115,
+              105,
+              111,
+              110,
+              115,
+            ]),
+          ],
+        },
+      },
+    },
+    /** RevokeUserSession revokes a specific session for a user. */
+    revokeUserSession: {
+      name: "RevokeUserSession",
+      requestType: RevokeUserSessionRequest,
+      requestStream: false,
+      responseType: Empty,
+      responseStream: false,
+      options: {
+        _unknownFields: {
+          8410: [new Uint8Array([4, 110, 97, 109, 101])],
+          578365826: [
+            new Uint8Array([
+              35,
+              42,
+              33,
+              47,
+              97,
+              112,
+              105,
+              47,
+              118,
+              49,
+              47,
+              123,
+              110,
+              97,
+              109,
+              101,
+              61,
+              117,
+              115,
+              101,
+              114,
+              115,
+              47,
+              42,
+              47,
+              115,
+              101,
+              115,
+              115,
+              105,
+              111,
               110,
               115,
               47,

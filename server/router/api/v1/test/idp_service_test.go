@@ -22,7 +22,7 @@ func TestCreateIdentityProvider(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set user context
-		ctx := ts.CreateUserContext(ctx, hostUser.Username)
+		ctx := ts.CreateUserContext(ctx, hostUser.ID)
 
 		// Create OAuth2 identity provider
 		req := &v1pb.CreateIdentityProviderRequest{
@@ -57,7 +57,6 @@ func TestCreateIdentityProvider(t *testing.T) {
 		require.Equal(t, "Test OAuth2 Provider", resp.Title)
 		require.Equal(t, v1pb.IdentityProvider_OAUTH2, resp.Type)
 		require.Contains(t, resp.Name, "identityProviders/")
-		require.NotEmpty(t, resp.Uid)
 		require.NotNil(t, resp.Config.GetOauth2Config())
 		require.Equal(t, "test-client-id", resp.Config.GetOauth2Config().ClientId)
 	})
@@ -71,7 +70,7 @@ func TestCreateIdentityProvider(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set user context
-		ctx := ts.CreateUserContext(ctx, regularUser.Username)
+		ctx := ts.CreateUserContext(ctx, regularUser.ID)
 
 		req := &v1pb.CreateIdentityProviderRequest{
 			IdentityProvider: &v1pb.IdentityProvider{
@@ -125,7 +124,7 @@ func TestListIdentityProviders(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set user context
-		userCtx := ts.CreateUserContext(ctx, hostUser.Username)
+		userCtx := ts.CreateUserContext(ctx, hostUser.ID)
 
 		// Create a couple of identity providers
 		createReq1 := &v1pb.CreateIdentityProviderRequest{
@@ -199,7 +198,7 @@ func TestGetIdentityProvider(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set user context
-		userCtx := ts.CreateUserContext(ctx, hostUser.Username)
+		userCtx := ts.CreateUserContext(ctx, hostUser.ID)
 
 		// Create identity provider
 		createReq := &v1pb.CreateIdentityProviderRequest{
@@ -284,7 +283,7 @@ func TestUpdateIdentityProvider(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set user context
-		userCtx := ts.CreateUserContext(ctx, hostUser.Username)
+		userCtx := ts.CreateUserContext(ctx, hostUser.ID)
 
 		// Create identity provider
 		createReq := &v1pb.CreateIdentityProviderRequest{
@@ -398,7 +397,7 @@ func TestDeleteIdentityProvider(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set user context
-		userCtx := ts.CreateUserContext(ctx, hostUser.Username)
+		userCtx := ts.CreateUserContext(ctx, hostUser.ID)
 
 		// Create identity provider
 		createReq := &v1pb.CreateIdentityProviderRequest{
@@ -464,7 +463,7 @@ func TestDeleteIdentityProvider(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set user context
-		userCtx := ts.CreateUserContext(ctx, hostUser.Username)
+		userCtx := ts.CreateUserContext(ctx, hostUser.ID)
 
 		req := &v1pb.DeleteIdentityProviderRequest{
 			Name: "identityProviders/999",
@@ -488,7 +487,7 @@ func TestIdentityProviderPermissions(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set user context
-		userCtx := ts.CreateUserContext(ctx, regularUser.Username)
+		userCtx := ts.CreateUserContext(ctx, regularUser.ID)
 
 		req := &v1pb.CreateIdentityProviderRequest{
 			IdentityProvider: &v1pb.IdentityProvider{

@@ -33,7 +33,7 @@
     "create": "建立",
     "database": "資料庫",
     "day": "日",
-    "days": "日子",
+    "days": "日",
     "delete": "刪除",
     "description": "說明",
     "edit": "編輯",
@@ -50,7 +50,7 @@
     "learn-more": "了解",
     "link": "連結",
     "mark": "Mark",
-    "memo": "Memo",
+    "memo": "備忘錄",
     "memos": "備忘錄",
     "name": "名稱",
     "new": "新增",
@@ -84,6 +84,7 @@
     "unpin": "解除釘選",
     "update": "更新",
     "upload": "上傳",
+    "user": "使用者",
     "username": "帳號",
     "version": "版本",
     "visibility": "可見度",
@@ -229,6 +230,14 @@
       "description": "此處列出您帳號的所有存取令牌。",
       "title": "存取令牌",
       "token": "令牌"
+    },
+    "user-sessions-section": {
+      "title": "使用者會话",
+      "description": "此處列出您帳號的所有使用者會话。",
+      "device": "裝置",
+      "last-active": "最後活躍時間",
+      "expires": "過期時間",
+      "current": "當前裝置"
     },
     "account-section": {
       "change-password": "變更密碼",

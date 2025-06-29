@@ -1,4 +1,4 @@
-import { Button, Checkbox, Input } from "@usememos/mui";
+import { Button, Input } from "@usememos/mui";
 import { LoaderIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { ClientError } from "nice-grpc-web";
@@ -17,7 +17,6 @@ const PasswordSignInForm = observer(() => {
   const actionBtnLoadingState = useLoading(false);
   const [username, setUsername] = useState(workspaceStore.state.profile.mode === "demo" ? "yourselfhosted" : "");
   const [password, setPassword] = useState(workspaceStore.state.profile.mode === "demo" ? "yourselfhosted" : "");
-  const [remember, setRemember] = useState(true);
 
   const handleUsernameInputChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value as string;
@@ -45,7 +44,9 @@ const PasswordSignInForm = observer(() => {
 
     try {
       actionBtnLoadingState.setLoading();
-      await authServiceClient.createSession({ passwordCredentials: { username, password }, neverExpire: remember });
+      await authServiceClient.createSession({
+        passwordCredentials: { username, password },
+      });
       await initialUserStore();
       navigateTo("/");
     } catch (error: any) {
@@ -90,9 +91,6 @@ const PasswordSignInForm = observer(() => {
             required
           />
         </div>
-      </div>
-      <div className="flex flex-row justify-start items-center w-full mt-6">
-        <Checkbox label={t("common.remember-me")} checked={remember} onChange={(e) => setRemember(e.target.checked)} />
       </div>
       <div className="flex flex-row justify-end items-center w-full mt-6">
         <Button

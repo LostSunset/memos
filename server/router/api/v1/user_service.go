@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"crypto/md5"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -144,15 +143,36 @@ func (s *APIV1Service) GetUserAvatar(ctx context.Context, request *v1pb.GetUserA
 }
 
 func (s *APIV1Service) CreateUser(ctx context.Context, request *v1pb.CreateUserRequest) (*v1pb.User, error) {
-	currentUser, err := s.GetCurrentUser(ctx)
+	// Check if there are any existing host users (for first-time setup detection)
+	hostUserType := store.RoleHost
+	existedHostUsers, err := s.Store.ListUsers(ctx, &store.FindUser{
+		Role: &hostUserType,
+	})
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to list host users: %v", err)
 	}
-	if currentUser.Role != store.RoleHost {
-		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+
+	// Determine the role to assign and check permissions
+	var roleToAssign store.Role
+	if len(existedHostUsers) == 0 {
+		// First-time setup: create the first user as HOST (no authentication required)
+		roleToAssign = store.RoleHost
+	} else {
+		// Regular user creation: allow unauthenticated creation of normal users
+		// But if authenticated, check if user has HOST permission for any role
+		currentUser, err := s.GetCurrentUser(ctx)
+		if err == nil && currentUser != nil && currentUser.Role == store.RoleHost {
+			// Authenticated HOST user can create users with any role specified in request
+			if request.User.Role != v1pb.User_ROLE_UNSPECIFIED {
+				roleToAssign = convertUserRoleToStore(request.User.Role)
+			} else {
+				roleToAssign = store.RoleUser
+			}
+		} else {
+			// Unauthenticated or non-HOST users can only create normal users
+			roleToAssign = store.RoleUser
+		}
 	}
-	// TODO: Handle request_id for idempotency
-	// TODO: Handle user_id field if provided
 
 	if !base.UIDMatcher.MatchString(strings.ToLower(request.User.Username)) {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid username: %s", request.User.Username)
@@ -165,7 +185,7 @@ func (s *APIV1Service) CreateUser(ctx context.Context, request *v1pb.CreateUserR
 			Username:    request.User.Username,
 			Email:       request.User.Email,
 			DisplayName: request.User.DisplayName,
-			Role:        request.User.Role,
+			Role:        convertUserRoleFromStore(roleToAssign),
 		}, nil
 	}
 
@@ -176,7 +196,7 @@ func (s *APIV1Service) CreateUser(ctx context.Context, request *v1pb.CreateUserR
 
 	user, err := s.Store.CreateUser(ctx, &store.User{
 		Username:     request.User.Username,
-		Role:         convertUserRoleToStore(request.User.Role),
+		Role:         roleToAssign,
 		Email:        request.User.Email,
 		Nickname:     request.User.DisplayName,
 		PasswordHash: string(passwordHash),
@@ -344,12 +364,13 @@ func (s *APIV1Service) GetUserSetting(ctx context.Context, request *v1pb.GetUser
 	userSettingMessage.Name = fmt.Sprintf("users/%d", userID)
 
 	for _, setting := range userSettings {
-		if setting.Key == storepb.UserSettingKey_LOCALE {
-			userSettingMessage.Locale = setting.GetLocale()
-		} else if setting.Key == storepb.UserSettingKey_APPEARANCE {
-			userSettingMessage.Appearance = setting.GetAppearance()
-		} else if setting.Key == storepb.UserSettingKey_MEMO_VISIBILITY {
-			userSettingMessage.MemoVisibility = setting.GetMemoVisibility()
+		if setting.Key == storepb.UserSetting_GENERAL {
+			general := setting.GetGeneral()
+			if general != nil {
+				userSettingMessage.Locale = general.Locale
+				userSettingMessage.Appearance = general.Appearance
+				userSettingMessage.MemoVisibility = general.MemoVisibility
+			}
 		}
 	}
 	return userSettingMessage, nil
@@ -376,40 +397,53 @@ func (s *APIV1Service) UpdateUserSetting(ctx context.Context, request *v1pb.Upda
 		return nil, status.Errorf(codes.InvalidArgument, "update mask is empty")
 	}
 
+	// Get the current general setting
+	existingGeneralSetting, err := s.Store.GetUserSetting(ctx, &store.FindUserSetting{
+		UserID: &userID,
+		Key:    storepb.UserSetting_GENERAL,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get existing general setting: %v", err)
+	}
+
+	// Create or update the general setting
+	generalSetting := &storepb.GeneralUserSetting{
+		Locale:         "en",
+		Appearance:     "system",
+		MemoVisibility: "PRIVATE",
+	}
+
+	// If there's an existing setting, use its values as defaults
+	if existingGeneralSetting != nil && existingGeneralSetting.GetGeneral() != nil {
+		existing := existingGeneralSetting.GetGeneral()
+		generalSetting.Locale = existing.Locale
+		generalSetting.Appearance = existing.Appearance
+		generalSetting.MemoVisibility = existing.MemoVisibility
+	}
+
+	// Apply updates based on the update mask
 	for _, field := range request.UpdateMask.Paths {
-		if field == "locale" {
-			if _, err := s.Store.UpsertUserSetting(ctx, &storepb.UserSetting{
-				UserId: userID,
-				Key:    storepb.UserSettingKey_LOCALE,
-				Value: &storepb.UserSetting_Locale{
-					Locale: request.Setting.Locale,
-				},
-			}); err != nil {
-				return nil, status.Errorf(codes.Internal, "failed to upsert user setting: %v", err)
-			}
-		} else if field == "appearance" {
-			if _, err := s.Store.UpsertUserSetting(ctx, &storepb.UserSetting{
-				UserId: userID,
-				Key:    storepb.UserSettingKey_APPEARANCE,
-				Value: &storepb.UserSetting_Appearance{
-					Appearance: request.Setting.Appearance,
-				},
-			}); err != nil {
-				return nil, status.Errorf(codes.Internal, "failed to upsert user setting: %v", err)
-			}
-		} else if field == "memo_visibility" {
-			if _, err := s.Store.UpsertUserSetting(ctx, &storepb.UserSetting{
-				UserId: userID,
-				Key:    storepb.UserSettingKey_MEMO_VISIBILITY,
-				Value: &storepb.UserSetting_MemoVisibility{
-					MemoVisibility: request.Setting.MemoVisibility,
-				},
-			}); err != nil {
-				return nil, status.Errorf(codes.Internal, "failed to upsert user setting: %v", err)
-			}
-		} else {
+		switch field {
+		case "locale":
+			generalSetting.Locale = request.Setting.Locale
+		case "appearance":
+			generalSetting.Appearance = request.Setting.Appearance
+		case "memo_visibility":
+			generalSetting.MemoVisibility = request.Setting.MemoVisibility
+		default:
 			return nil, status.Errorf(codes.InvalidArgument, "invalid update path: %s", field)
 		}
+	}
+
+	// Upsert the general setting
+	if _, err := s.Store.UpsertUserSetting(ctx, &storepb.UserSetting{
+		UserId: userID,
+		Key:    storepb.UserSetting_GENERAL,
+		Value: &storepb.UserSetting_General{
+			General: generalSetting,
+		},
+	}); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to upsert user setting: %v", err)
 	}
 
 	return s.GetUserSetting(ctx, &v1pb.GetUserSettingRequest{Name: request.Setting.Name})
@@ -575,7 +609,7 @@ func (s *APIV1Service) DeleteUserAccessToken(ctx context.Context, request *v1pb.
 	}
 	if _, err := s.Store.UpsertUserSetting(ctx, &storepb.UserSetting{
 		UserId: currentUser.ID,
-		Key:    storepb.UserSettingKey_ACCESS_TOKENS,
+		Key:    storepb.UserSetting_ACCESS_TOKENS,
 		Value: &storepb.UserSetting_AccessTokens{
 			AccessTokens: &storepb.AccessTokensUserSetting{
 				AccessTokens: updatedUserAccessTokens,
@@ -588,6 +622,105 @@ func (s *APIV1Service) DeleteUserAccessToken(ctx context.Context, request *v1pb.
 	return &emptypb.Empty{}, nil
 }
 
+func (s *APIV1Service) ListUserSessions(ctx context.Context, request *v1pb.ListUserSessionsRequest) (*v1pb.ListUserSessionsResponse, error) {
+	userID, err := ExtractUserIDFromName(request.Parent)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user name: %v", err)
+	}
+
+	currentUser, err := s.GetCurrentUser(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+	}
+	if currentUser.ID != userID {
+		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+	}
+
+	userSessions, err := s.Store.GetUserSessions(ctx, userID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list sessions: %v", err)
+	}
+
+	sessions := []*v1pb.UserSession{}
+	for _, userSession := range userSessions {
+		sessionResponse := &v1pb.UserSession{
+			Name:             fmt.Sprintf("users/%d/sessions/%s", userID, userSession.SessionId),
+			SessionId:        userSession.SessionId,
+			CreateTime:       userSession.CreateTime,
+			LastAccessedTime: userSession.LastAccessedTime,
+		}
+
+		if userSession.ClientInfo != nil {
+			sessionResponse.ClientInfo = &v1pb.UserSession_ClientInfo{
+				UserAgent:  userSession.ClientInfo.UserAgent,
+				IpAddress:  userSession.ClientInfo.IpAddress,
+				DeviceType: userSession.ClientInfo.DeviceType,
+				Os:         userSession.ClientInfo.Os,
+				Browser:    userSession.ClientInfo.Browser,
+			}
+		}
+
+		sessions = append(sessions, sessionResponse)
+	}
+
+	// Sort by last accessed time in descending order.
+	slices.SortFunc(sessions, func(i, j *v1pb.UserSession) int {
+		return int(j.LastAccessedTime.Seconds - i.LastAccessedTime.Seconds)
+	})
+
+	response := &v1pb.ListUserSessionsResponse{
+		Sessions: sessions,
+	}
+	return response, nil
+}
+
+func (s *APIV1Service) RevokeUserSession(ctx context.Context, request *v1pb.RevokeUserSessionRequest) (*emptypb.Empty, error) {
+	// Extract user ID and session ID from the session resource name
+	// Format: users/{user}/sessions/{session}
+	parts := strings.Split(request.Name, "/")
+	if len(parts) != 4 || parts[0] != "users" || parts[2] != "sessions" {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid session name format: %s", request.Name)
+	}
+
+	userID, err := ExtractUserIDFromName(fmt.Sprintf("users/%s", parts[1]))
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user name: %v", err)
+	}
+	sessionIDToRevoke := parts[3]
+
+	currentUser, err := s.GetCurrentUser(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+	}
+	if currentUser == nil {
+		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+	}
+	if currentUser.ID != userID {
+		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+	}
+
+	if err := s.Store.RemoveUserSession(ctx, userID, sessionIDToRevoke); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to revoke session: %v", err)
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+// UpsertUserSession adds or updates a user session.
+func (s *APIV1Service) UpsertUserSession(ctx context.Context, userID int32, sessionID string, clientInfo *storepb.SessionsUserSetting_ClientInfo) error {
+	session := &storepb.SessionsUserSetting_Session{
+		SessionId:        sessionID,
+		CreateTime:       timestamppb.Now(),
+		LastAccessedTime: timestamppb.Now(),
+		ClientInfo:       clientInfo,
+	}
+
+	return s.Store.AddUserSession(ctx, userID, session)
+}
+
 func (s *APIV1Service) UpsertAccessTokenToStore(ctx context.Context, user *store.User, accessToken, description string) error {
 	userAccessTokens, err := s.Store.GetUserAccessTokens(ctx, user.ID)
 	if err != nil {
@@ -598,9 +731,10 @@ func (s *APIV1Service) UpsertAccessTokenToStore(ctx context.Context, user *store
 		Description: description,
 	}
 	userAccessTokens = append(userAccessTokens, &userAccessToken)
+
 	if _, err := s.Store.UpsertUserSetting(ctx, &storepb.UserSetting{
 		UserId: user.ID,
-		Key:    storepb.UserSettingKey_ACCESS_TOKENS,
+		Key:    storepb.UserSetting_ACCESS_TOKENS,
 		Value: &storepb.UserSetting_AccessTokens{
 			AccessTokens: &storepb.AccessTokensUserSetting{
 				AccessTokens: userAccessTokens,
@@ -613,11 +747,6 @@ func (s *APIV1Service) UpsertAccessTokenToStore(ctx context.Context, user *store
 }
 
 func convertUserFromStore(user *store.User) *v1pb.User {
-	// Generate etag based on user data
-	etagData := fmt.Sprintf("%d-%d-%s-%s-%s", user.ID, user.UpdatedTs, user.Username, user.Email, user.Nickname)
-	hash := md5.Sum([]byte(etagData))
-	etag := fmt.Sprintf("%x", hash)
-
 	userpb := &v1pb.User{
 		Name:        fmt.Sprintf("%s%d", UserNamePrefix, user.ID),
 		State:       convertStateFromStore(user.RowStatus),
@@ -629,7 +758,6 @@ func convertUserFromStore(user *store.User) *v1pb.User {
 		DisplayName: user.Nickname,
 		AvatarUrl:   user.AvatarURL,
 		Description: user.Description,
-		Etag:        etag,
 	}
 	// Use the avatar URL instead of raw base64 image data to reduce the response size.
 	if user.AvatarURL != "" {

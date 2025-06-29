@@ -70,8 +70,8 @@ const Navigation = observer((props: Props) => {
         className,
       )}
     >
-      <div className="w-full px-1 py-1 flex flex-col justify-start items-start space-y-2 overflow-auto hide-scrollbar shrink">
-        <NavLink className="mb-2 cursor-default" to={currentUser ? Routes.ROOT : Routes.EXPLORE}>
+      <div className="w-full px-1 py-1 flex flex-col justify-start items-start space-y-2 overflow-auto overflow-x-hidden hide-scrollbar shrink">
+        <NavLink className="mb-3 cursor-default" to={currentUser ? Routes.ROOT : Routes.EXPLORE}>
           <BrandBanner collapsed={collapsed} />
         </NavLink>
         {navLinks.map((navLink) => (
