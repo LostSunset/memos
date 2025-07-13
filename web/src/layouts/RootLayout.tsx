@@ -8,8 +8,8 @@ import useResponsiveWidth from "@/hooks/useResponsiveWidth";
 import { cn } from "@/lib/utils";
 import Loading from "@/pages/Loading";
 import { Routes } from "@/router";
-import { workspaceStore } from "@/store/v2";
-import memoFilterStore from "@/store/v2/memoFilter";
+import { workspaceStore } from "@/store";
+import memoFilterStore from "@/store/memoFilter";
 
 const RootLayout = observer(() => {
   const location = useLocation();
@@ -48,8 +48,14 @@ const RootLayout = observer(() => {
   ) : (
     <div className="w-full min-h-full flex flex-row justify-center items-start sm:pl-16">
       {sm && (
-        <div className={cn("group flex flex-col justify-start items-start fixed top-0 left-0 select-none h-full bg-sidebar", "w-16 px-2")}>
-          <Navigation collapsed={true} />
+        <div
+          className={cn(
+            "group flex flex-col justify-start items-start fixed top-0 left-0 select-none h-full bg-sidebar",
+            "w-16 px-2",
+            "border-r border-border",
+          )}
+        >
+          <Navigation className="py-4 md:pt-6" collapsed={true} />
         </div>
       )}
       <main className="w-full h-auto grow shrink flex flex-col justify-start items-center">

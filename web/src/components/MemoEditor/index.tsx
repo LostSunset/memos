@@ -13,8 +13,8 @@ import { isValidUrl } from "@/helpers/utils";
 import useAsyncEffect from "@/hooks/useAsyncEffect";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
+import { memoStore, attachmentStore, userStore, workspaceStore } from "@/store";
 import { extractMemoIdFromName } from "@/store/common";
-import { memoStore, attachmentStore, userStore, workspaceStore } from "@/store/v2";
 import { Attachment } from "@/types/proto/api/v1/attachment_service";
 import { Location, Memo, MemoRelation, MemoRelation_Type, Visibility } from "@/types/proto/api/v1/memo_service";
 import { UserSetting } from "@/types/proto/api/v1/user_service";
@@ -530,7 +530,7 @@ const MemoEditor = observer((props: Props) => {
         </div>
         <div
           className={cn(
-            "absolute right-1 top-1 opacity-60",
+            "absolute right-1 top-1",
             "flex flex-row justify-end items-center gap-1",
             "invisible group-focus-within:visible group-hover:visible hover:visible focus-within:visible",
             (isVisibilitySelectorOpen || memoName) && "visible",

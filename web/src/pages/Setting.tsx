@@ -14,8 +14,8 @@ import WorkspaceSection from "@/components/Settings/WorkspaceSection";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import useResponsiveWidth from "@/hooks/useResponsiveWidth";
-import { workspaceStore } from "@/store/v2";
-import { WorkspaceSettingKey } from "@/store/v2/workspace";
+import { workspaceStore } from "@/store";
+import { WorkspaceSettingKey } from "@/store/workspace";
 import { User_Role } from "@/types/proto/api/v1/user_service";
 import { useTranslate } from "@/utils/i18n";
 
@@ -87,7 +87,7 @@ const Setting = observer(() => {
     <section className="@container w-full max-w-5xl min-h-full flex flex-col justify-start items-start sm:pt-3 md:pt-6 pb-8">
       {!md && <MobileHeader />}
       <div className="w-full px-4 sm:px-6">
-        <div className="w-full shadow border border-border flex flex-row justify-start items-start px-4 py-3 rounded-xl bg-background text-muted-foreground">
+        <div className="w-full border border-border flex flex-row justify-start items-start px-4 py-3 rounded-xl bg-background text-muted-foreground">
           <div className="hidden sm:flex flex-col justify-start items-start w-40 h-auto shrink-0 py-2">
             <span className="text-sm mt-0.5 pl-3 font-mono select-none text-muted-foreground">{t("common.basic")}</span>
             <div className="w-full flex flex-col justify-start items-start mt-1">

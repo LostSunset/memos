@@ -10,16 +10,19 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { identityProviderServiceClient } from "@/grpcweb";
+import useDialog from "@/hooks/useDialog";
+import { workspaceStore } from "@/store";
 import { workspaceSettingNamePrefix } from "@/store/common";
-import { workspaceStore } from "@/store/v2";
-import { WorkspaceSettingKey } from "@/store/v2/workspace";
+import { WorkspaceSettingKey } from "@/store/workspace";
 import { IdentityProvider } from "@/types/proto/api/v1/idp_service";
 import { WorkspaceGeneralSetting } from "@/types/proto/api/v1/workspace_service";
 import { useTranslate } from "@/utils/i18n";
-import showUpdateCustomizedProfileDialog from "../UpdateCustomizedProfileDialog";
+import ThemeSelector from "../ThemeSelector";
+import UpdateCustomizedProfileDialog from "../UpdateCustomizedProfileDialog";
 
 const WorkspaceSection = observer(() => {
   const t = useTranslate();
+  const customizeDialog = useDialog();
   const originalSetting = WorkspaceGeneralSetting.fromPartial(
     workspaceStore.getWorkspaceSettingByKey(WorkspaceSettingKey.GENERAL)?.generalSetting || {},
   );
@@ -31,7 +34,7 @@ const WorkspaceSection = observer(() => {
   }, [workspaceStore.getWorkspaceSettingByKey(WorkspaceSettingKey.GENERAL)]);
 
   const handleUpdateCustomizedProfileButtonClick = () => {
-    showUpdateCustomizedProfileDialog();
+    customizeDialog.open();
   };
 
   const updatePartialSetting = (partial: Partial<WorkspaceGeneralSetting>) => {
@@ -80,6 +83,14 @@ const WorkspaceSection = observer(() => {
       </div>
       <Separator />
       <p className="font-medium text-foreground">{t("setting.system-section.title")}</p>
+      <div className="w-full flex flex-row justify-between items-center">
+        <span>Theme</span>
+        <ThemeSelector
+          value={workspaceGeneralSetting.theme || "default"}
+          onValueChange={(value) => updatePartialSetting({ theme: value })}
+          className="min-w-fit"
+        />
+      </div>
       <div className="w-full flex flex-row justify-between items-center">
         <span>{t("setting.system-section.additional-style")}</span>
       </div>
@@ -166,6 +177,15 @@ const WorkspaceSection = observer(() => {
           {t("common.save")}
         </Button>
       </div>
+
+      <UpdateCustomizedProfileDialog
+        open={customizeDialog.isOpen}
+        onOpenChange={customizeDialog.setOpen}
+        onSuccess={() => {
+          // Refresh workspace settings if needed
+          toast.success("Profile updated successfully!");
+        }}
+      />
     </div>
   );
 });

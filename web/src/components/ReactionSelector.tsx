@@ -5,7 +5,7 @@ import useClickAway from "react-use/lib/useClickAway";
 import { memoServiceClient } from "@/grpcweb";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
-import { memoStore, workspaceStore } from "@/store/v2";
+import { memoStore, workspaceStore } from "@/store";
 import { Memo } from "@/types/proto/api/v1/memo_service";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
@@ -57,7 +57,12 @@ const ReactionSelector = observer((props: Props) => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <span className={cn("h-7 w-7 flex justify-center items-center rounded-full border hover:opacity-70 cursor-pointer", className)}>
+        <span
+          className={cn(
+            "h-7 w-7 flex justify-center items-center rounded-full border hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors",
+            className,
+          )}
+        >
           <SmilePlusIcon className="w-4 h-4 mx-auto text-muted-foreground" />
         </span>
       </PopoverTrigger>
@@ -69,8 +74,8 @@ const ReactionSelector = observer((props: Props) => {
                 <span
                   key={reactionType}
                   className={cn(
-                    "inline-flex w-auto text-base cursor-pointer rounded px-1 text-muted-foreground hover:opacity-80",
-                    hasReacted(reactionType) && "bg-primary/10",
+                    "inline-flex w-auto text-base cursor-pointer rounded px-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
+                    hasReacted(reactionType) && "bg-primary text-primary-foreground",
                   )}
                   onClick={() => handleReactionClick(reactionType)}
                 >
